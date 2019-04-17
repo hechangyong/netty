@@ -41,23 +41,43 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * {@link AbstractBootstrap} is a helper class that makes it easy to bootstrap a {@link Channel}. It support
+ * {@link AbstractBootstrap} is a helper class that makes it easy to bootstrap a {@link Channel}.
+ * It support
  * method-chaining to provide an easy way to configure the {@link AbstractBootstrap}.
- *
+ * 支持方法链， 提供了一个更简便的方式去配置启动类。
  * <p>When not used in a {@link ServerBootstrap} context, the {@link #bind()} methods are useful for connectionless
  * transports such as datagram (UDP).</p>
+ *
+ * 这边定义一个两个泛型 泛型B继承AbstractBootstrap类，用于表示自身的类型，为接下来的方法链调用提供了可能。
+ * C 继承 Channel 类，表示表示创建的 Channel 类型。
  */
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
 
     volatile EventLoopGroup group;
+    /**
+     * Channel 工厂，用于创建 Channel 对象。
+     */
     @SuppressWarnings("deprecation")
     private volatile ChannelFactory<? extends C> channelFactory;
+    /**
+     * 本地socker地址
+     */
     private volatile SocketAddress localAddress;
+    /**
+     * 可选项集合
+     */
     private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
+    /**
+     * 属性集合
+     */
     private final Map<AttributeKey<?>, Object> attrs = new LinkedHashMap<AttributeKey<?>, Object>();
+    /**
+     * 处理器
+     */
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
+        // 禁止从不同的包中扩展。 ??? TODO 没懂
         // Disallow extending from a different package.
     }
 
@@ -66,6 +86,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         channelFactory = bootstrap.channelFactory;
         handler = bootstrap.handler;
         localAddress = bootstrap.localAddress;
+        // 使用 synchronized来同步 ，防止 bootstrap 实现类传进来的options 和下面的attrs 可能在另外的线程被修改了。
         synchronized (bootstrap.options) {
             options.putAll(bootstrap.options);
         }
@@ -75,6 +96,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
+     * 这个 EventLoopGroup 用于处理待创建的所有事件
      * The {@link EventLoopGroup} which is used to handle all the events for the to-be-created
      * {@link Channel}
      */
@@ -89,6 +111,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return self();
     }
 
+    /**
+     * 为整的链式调用提供支持。
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private B self() {
         return (B) this;
@@ -98,6 +124,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * The {@link Class} which is used to create {@link Channel} instances from.
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
+     * 创建一个Channel 实例
      */
     public B channel(Class<? extends C> channelClass) {
         if (channelClass == null) {
@@ -114,7 +141,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (channelFactory == null) {
             throw new NullPointerException("channelFactory");
         }
-        if (this.channelFactory != null) {
+        if (this.channelFactory != null) { // 不允许重复设置
             throw new IllegalStateException("channelFactory set already");
         }
 
@@ -129,7 +156,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * has a no-args constructor, its highly recommend to just use {@link #channel(Class)} to
      * simplify your code.
      */
-    @SuppressWarnings({ "unchecked", "deprecation" })
+    @SuppressWarnings({"unchecked", "deprecation"})
     public B channelFactory(io.netty.channel.ChannelFactory<? extends C> channelFactory) {
         return channelFactory((ChannelFactory<C>) channelFactory);
     }
@@ -440,14 +467,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     static void setChannelOptions(
             Channel channel, Map<ChannelOption<?>, Object> options, InternalLogger logger) {
-        for (Map.Entry<ChannelOption<?>, Object> e: options.entrySet()) {
+        for (Map.Entry<ChannelOption<?>, Object> e : options.entrySet()) {
             setChannelOption(channel, e.getKey(), e.getValue(), logger);
         }
     }
 
     static void setChannelOptions(
             Channel channel, Map.Entry<ChannelOption<?>, Object>[] options, InternalLogger logger) {
-        for (Map.Entry<ChannelOption<?>, Object> e: options) {
+        for (Map.Entry<ChannelOption<?>, Object> e : options) {
             setChannelOption(channel, e.getKey(), e.getValue(), logger);
         }
     }
@@ -468,8 +495,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder()
-            .append(StringUtil.simpleClassName(this))
-            .append('(').append(config()).append(')');
+                .append(StringUtil.simpleClassName(this))
+                .append('(').append(config()).append(')');
         return buf.toString();
     }
 
