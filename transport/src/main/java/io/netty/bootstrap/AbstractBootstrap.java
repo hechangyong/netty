@@ -47,7 +47,7 @@ import java.util.Map;
  * 支持方法链， 提供了一个更简便的方式去配置启动类。
  * <p>When not used in a {@link ServerBootstrap} context, the {@link #bind()} methods are useful for connectionless
  * transports such as datagram (UDP).</p>
- *
+ * <p>
  * 这边定义一个两个泛型 泛型B继承AbstractBootstrap类，用于表示自身的类型，为接下来的方法链调用提供了可能。
  * C 继承 Channel 类，表示表示创建的 Channel 类型。
  */
@@ -113,6 +113,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * 为整的链式调用提供支持。
+     *
      * @return
      */
     @SuppressWarnings("unchecked")
@@ -124,7 +125,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * The {@link Class} which is used to create {@link Channel} instances from.
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
-     * 创建一个Channel 实例
+     * 通过传入的具体的channel class -> 创建一个 Channel 实例
      */
     public B channel(Class<? extends C> channelClass) {
         if (channelClass == null) {
@@ -163,6 +164,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * The {@link SocketAddress} which is used to bind the local "end" to.
+     * 设置 Channel 的本地地址 ，以下4个重载的方法
      */
     public B localAddress(SocketAddress localAddress) {
         this.localAddress = localAddress;
@@ -191,18 +193,21 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * Allow to specify a {@link ChannelOption} which is used for the {@link Channel} instances once they got
+     * Allow to specify a {@link ChannelOption} which is used for
+     * the {@link Channel} instances once they got
      * created. Use a value of {@code null} to remove a previous set {@link ChannelOption}.
      */
     public <T> B option(ChannelOption<T> option, T value) {
         if (option == null) {
             throw new NullPointerException("option");
         }
+        // 设置option 如果value为null,则移除这个操作。
         if (value == null) {
             synchronized (options) {
                 options.remove(option);
             }
         } else {
+            // 如果不为空，则添加或者更新。
             synchronized (options) {
                 options.put(option, value);
             }
@@ -213,6 +218,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Allow to specify an initial attribute of the newly created {@link Channel}.  If the {@code value} is
      * {@code null}, the attribute of the specified {@code key} is removed.
+     * 设置创建 Channel 的属性
      */
     public <T> B attr(AttributeKey<T> key, T value) {
         if (key == null) {
@@ -245,8 +251,12 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     /**
-     * Returns a deep clone of this bootstrap which has the identical configuration.  This method is useful when making
-     * multiple {@link Channel}s with similar settings.  Please note that this method does not clone the
+     * Returns a deep clone of this bootstrap
+     * which has the identical configuration.
+     * 返回一个深拷贝的克隆体。他具有相同的配置。
+     * This method is useful when making
+     * multiple {@link Channel}s with similar settings.
+     * Please note that this method does not clone the
      * {@link EventLoopGroup} deeply but shallowly, making the group a shared resource.
      */
     @Override
@@ -255,6 +265,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and register it with an {@link EventLoop}.
+     * 创建一个新的channel -> 初始化相关配置
+     * 然后把他注册在一个EventLoop 上。
+     * 返回一个 ChannelFuture
      */
     public ChannelFuture register() {
         validate();
@@ -344,12 +357,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            //创建一个Channel对象。
+            //channel() 方法 对 工厂类channelFactory 初始化。
             channel = channelFactory.newChannel();
+            // 初始化 Channel 配置
+            // 1. 将此 channel 的 ChannelHandler 加入管道中
+            // 2. 设置options
+            // 3. 设置 attr
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
                 // channel can be null if newChannel crashed (eg SocketException("too many open files"))
-                channel.unsafe().closeForcibly();
+                channel.unsafe().closeForcibly();// 强制关闭 Channel
                 // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
                 return new DefaultChannelPromise(channel, GlobalEventExecutor.INSTANCE).setFailure(t);
             }
@@ -357,6 +376,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        //注册 Channel 到 EventLoopGroup 中
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
