@@ -44,10 +44,25 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(ServerBootstrap.class);
 
+    /**
+     * 子 Channel 的可选项集合
+     */
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
+    /**
+     * 子 Channel 的属性集合
+     */
     private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<AttributeKey<?>, Object>();
+    /**
+     * 启动类配置对象
+     */
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
+    /**
+     * 子 Channel 的 EventLoopGroup 对象
+     */
     private volatile EventLoopGroup childGroup;
+    /**
+     * 子 Channel 的处理器
+     */
     private volatile ChannelHandler childHandler;
 
     public ServerBootstrap() { }

@@ -82,9 +82,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      */
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
+        //Netty NIO Channel 对象，持有的 Java 原生 NIO 的 Channel 对象。
         this.ch = ch;
         this.readInterestOp = readInterestOp;
         try {
+            //设置 NIO Channel 为非阻塞
             ch.configureBlocking(false);
         } catch (IOException e) {
             try {
@@ -383,6 +385,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
+                //调用 #javaChannel() 方法，获得 Java 原生 NIO 的 Channel 对象。
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {

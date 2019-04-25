@@ -57,6 +57,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     private final Channel parent;
     private final ChannelId id;
+    //Unsafe 不是一个具体的类，而是一个定义在 Channel 接口中的接口。
+    //不同的 Channel 类对应不同的 Unsafe 实现类。
     private final Unsafe unsafe;
     private final DefaultChannelPipeline pipeline;
     private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
@@ -80,8 +82,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      *        the parent of this channel. {@code null} if there's no parent.
      */
     protected AbstractChannel(Channel parent) {
-        this.parent = parent;
+        this.parent = parent;//父 Channel 对象。对于 NioServerSocketChannel 的 parent 为空。
+        //Channel 编号对象
         id = newId();
+        //，Unsafe 操作不允许被用户代码使用。这些函数是真正用于数据传输操作，必须被IO线程调用
         unsafe = newUnsafe();
         pipeline = newChannelPipeline();
     }
@@ -505,19 +509,25 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 if (!promise.setUncancellable() || !ensureOpen(promise)) {
                     return;
                 }
+                // 记录是否为首次注册
                 boolean firstRegistration = neverRegistered;
                 doRegister();
+                // 标记首次注册为 false
                 neverRegistered = false;
+                // 标记 Channel 为已注册
                 registered = true;
 
-                // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
+                // Ensure we call handlerAdded(...) before we actually notify the promise.
+                // This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
                 pipeline.invokeHandlerAddedIfNeeded();
-
+                //回调通知 `promise` 执行成功
                 safeSetSuccess(promise);
+                // 触发通知已注册事件
                 pipeline.fireChannelRegistered();
-                // Only fire a channelActive if the channel has never been registered. This prevents firing
-                // multiple channel actives if the channel is deregistered and re-registered.
+                // Only fire a channelActive if the channel has never been registered.
+                // This prevents firing multiple channel actives
+                // if the channel is deregistered and re-registered.
                 if (isActive()) {
                     if (firstRegistration) {
                         pipeline.fireChannelActive();
